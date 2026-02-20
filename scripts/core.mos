@@ -1,0 +1,25 @@
+[ -> 
+    and := [a b -> 
+        if [a] then 
+            if [b] then 
+                true 
+            else false
+        else false
+    ]
+
+    or := [a b ->
+        if a then 
+            true 
+        else 
+            if b then 
+                true 
+            else
+                false
+    ]
+
+    [ f -> 
+        if f = "and" then and
+        else if f = "or" then or
+        else { :noDeclError "Requested binding " + f + " not found in core" }
+    ]
+]

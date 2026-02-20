@@ -1,4 +1,17 @@
-[loadm "scripts/conslib.mos" "cons"]
-[loadm "scripts/taggedPair.mos" "tag"]
+// [loadm "scripts/core.mos" "core"]
+// [loadm "scripts/conslib.mos" "cons"]
+// [loadm "scripts/taggedPair.mos" "tag"]
 
-[println [[tag "is"] :hello {:htranpit "Guv"}]]
+// TypedLambda := [pTypes rType body ->
+//     [args ->
+//         paramsValid := args ~> true [a e i -> 
+//             expected := [at i pTypes]
+//             if ?e = expected then a else {:reduced {:typeError "Expected value of type " + expected + ", found " + ?e }}     
+//         ]
+//         if [and [-> (?paramsValid = :construction)] [-> ([at 0 paramsValid] = :typeError)]] then paramsValid
+//         else [expect :typeError
+//             [ -> [check [body args] rType]]
+//             [outcome -> outcome]
+//         ]
+//     ]
+// ]

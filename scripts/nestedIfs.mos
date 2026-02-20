@@ -1,7 +1,0 @@
-if false then
-    if false then
-        [println "a"]
-    else
-        [println "b"]
-else
-    [println "c"]
