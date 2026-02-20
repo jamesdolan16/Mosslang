@@ -1,0 +1,58 @@
+[ ->
+    /**
+    *  Fetches element at index in collection
+    *
+    *  If index exceeds the length of collection then :null is returned
+    *
+    *  @param integer index
+    *  @param construction collection
+    *  @return any
+    */
+    at := [index collection -> 
+        collection ~> :null [a e i -> 
+            if i = index then { :reduced e } else a
+        ]
+    ]
+
+    /**
+    * Reverses the order of collection
+    *
+    * @param construction collection
+    * @return construction
+    */
+    reverse := [collection ->
+        collection ~> {} [a e -> e|a]
+    ]
+
+    /**
+    * Destructure collection into head and tail
+    *
+    * @param construction collection
+    * @return construction{any, construction}
+    */
+    hat := [collection ->
+        head := [at 0 collection]
+        tail := collection ~> {} [a e i -> if i = 0 then a else a|e]
+        {head tail}
+    ]
+
+    /**
+    * Pop the last element off the construction
+    *
+    * @param construction collection
+    * @return construction{construction, any}
+    */ 
+    pop := [collection -> 
+        reversed := [reverse collection]
+        ht := [hat reversed]
+        {[at 0 ht] [reverse [at 1 ht]]}
+    ]
+
+    [f -> 
+        if f = "at" then at
+        else if f = "reverse" then reverse
+        else if f = "hat" then hat
+        else if f = "pop" then pop
+        else { :noDeclError "Requested binding " + f + " not found in conslib" }
+    ]
+]

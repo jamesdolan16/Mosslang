@@ -1,0 +1,10 @@
+services:
+  php:
+    build: .
+    volumes:
+      - .:/app
+      - ./xdebug.ini:/usr/local/etc/php/conf.d/99-xdebug.ini
+    working_dir: /app
+    tty: true
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

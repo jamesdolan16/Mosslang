@@ -1,0 +1,46 @@
+#!/usr/bin/env php
+<?php
+require __DIR__ . '/../vendor/autoload.php';
+
+use Jamesdolan16\Mosslang\Evaluator\Evaluator;
+use Jamesdolan16\Mosslang\Parser\Parser;
+use Jamesdolan16\Mosslang\Parser\NewLexer;
+
+if ($argc < 3) {
+    fwrite(STDERR, "Usage: php app <flags> <filename>\n");
+    die();
+}
+
+$options = getopt("adf:");
+
+$astOnly = isset($options['a']);
+$filename = $options['f'];
+
+if (!is_readable($filename)) {
+    fwrite(STDERR, "Error: Cannot read file '$filename'\n");
+    exit(1);
+}
+
+$source = file_get_contents($filename);
+
+if ($source === false) {
+    fwrite(STDERR, "Error: Failed to read file\n");
+    exit(1);
+}
+
+$source = str_replace(["\r\n", "\r"], "\n", $source);
+
+$lexer = new NewLexer();
+$parser = new Parser();
+$evaluator = new Evaluator($lexer, $parser);
+
+$tokens = $lexer->tokenize($source);
+$program = $parser->parse($tokens);
+
+if ($astOnly) {
+    file_put_contents('ast.json', json_encode(normaliseAst($program), JSON_PRETTY_PRINT));
+    die();
+}
+
+$evaluator->loadNativeLambdas();
+$evaluator->evaluateProgram($program);

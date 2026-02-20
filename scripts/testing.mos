@@ -1,0 +1,93 @@
+at := [index collection -> 
+    collection ~> :null [a e i -> 
+        if i = index then { :reduced e } else a
+    ]
+]
+
+get := [key collection ->
+    collection ~> :null [a e -> 
+        thisKey := [at 0 e]
+        thisVal := [at 1 e]
+        if thisKey = key then { :reduced thisVal } else a
+    ]
+]
+
+check := [val type ->
+    if ?val = type then 
+        { :ok val } 
+    else 
+        { :typeError "Expected value of type " + type + ", found " + ?val }
+]
+
+expect := [err action when ->
+    outcome := [action]
+    if [at 0 outcome] = err then [when outcome]
+    else [at 1 outcome]
+]
+
+string := [val -> [check val :string]]
+integer := [val -> [check val :integer]]
+float := [val -> [check val :float]]
+construction := [val -> [check val :construction]]
+symbol := [val -> [check val :symbol]]
+lambda := [val -> [check val :lambda]]
+native_lambda := [val -> [check val :native_lambda]]
+
+reverse := [collection ->
+    collection ~> {} [a e -> e|a]
+]
+
+pop := [collection -> 
+    reversed := [reverse collection]
+    new := reversed ~> {} [a e i ->
+        if i = 0 then a else a|e
+    ]
+];
+
+printArgs := [format args -> 
+    formatChars := [explode format]
+    reversedArgs := [reverse args]
+    formatChars ~> {args} [a e ->
+
+    ]
+];
+
+and := [a b -> 
+    if [a] then 
+        if [b] then 
+            true 
+        else false
+    else false
+]
+
+or := [a b ->
+    if a then 
+        true 
+    else 
+        if b then 
+            true 
+        else
+            false
+]
+
+TypedLambda := [pTypes rType body ->
+    [args ->
+        paramsValid := args ~> true [a e i -> 
+            expected := [at i pTypes]
+            if ?e = expected then a else {:reduced {:typeError "Expected value of type " + expected + ", found " + ?e }}     
+        ]
+        if [and [-> (?paramsValid = :construction)] [-> ([at 0 paramsValid] = :typeError)]] then paramsValid
+        else [expect :typeError
+            [ -> [check [body args] rType]]
+            [outcome -> outcome]
+        ]
+    ]
+]
+
+addInts := [TypedLambda {:integer :integer} :integer [args -> 
+    a := [at 0 args]
+    b := [at 1 args]
+    a + b
+]]
+
+[println [addInts {1 "dog"}]]

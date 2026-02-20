@@ -1,0 +1,3 @@
+[loadm "scripts/conslib.mos" "cons"]
+
+[println [[cons "at"] 2 {0 1 2}]]

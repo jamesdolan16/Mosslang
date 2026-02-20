@@ -1,0 +1,103 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Moss",
+  "scopeName": "source.moss",
+
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#numbers" },
+    { "include": "#symbols" },
+    { "include": "#sigils" },
+    { "include": "#keywords" }
+  ],
+
+  "repository": {
+
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.moss",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.block.moss",
+          "begin": "/\\*",
+          "end": "\\*/"
+        }
+      ]
+    },
+
+    "strings": {
+      "name": "string.quoted.double.moss",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.character.escape.moss",
+          "match": "\\\\."
+        }
+      ]
+    },
+
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.float.moss",
+          "match": "\\b\\d+\\.\\d+\\b"
+        },
+        {
+          "name": "constant.numeric.integer.moss",
+          "match": "\\b\\d+\\b"
+        }
+      ]
+    },
+
+    "symbols": {
+      "patterns": [
+        {
+          "name": "constant.language.symbol.moss",
+          "match": ":[a-zA-Z_][a-zA-Z0-9_-]*"
+        }
+      ]
+    },
+
+    "sigils": {
+      "patterns": [
+        {
+          "name": "keyword.operator.pipeline.moss",
+          "match": "~>"
+        },
+        {
+          "name": "keyword.operator.arrow.moss",
+          "match": "->"
+        },
+        {
+          "name": "keyword.operator.concat.moss",
+          "match": "\\|"
+        },
+        {
+          "name": "keyword.operator.assignment.moss",
+          "match": ":="
+        },
+        {
+          "name": "keyword.operator.signature.moss",
+          "match": "::"
+        }
+      ]
+    },
+
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.moss",
+          "match": "\\b(if|then|else)\\b"
+        },
+        {
+          "name": "constant.language.boolean.moss",
+          "match": "\\b(true|false)\\b"
+        }
+      ]
+    }
+  }
+}

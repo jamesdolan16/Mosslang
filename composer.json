@@ -1,0 +1,37 @@
+{
+    "name": "jamesdolan16/mosslang",
+    "description": "Lisp without the speech impediment",
+    "type": "project",
+    "autoload": {
+        "psr-4": {
+            "Jamesdolan16\\Mosslang\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "authors": [
+        {
+            "name": "James",
+            "email": "jamesdolan16@gmail.com"
+        }
+    ],
+    "require-dev": {
+        "phpstan/phpstan": "^2.1",
+        "phpunit/phpunit": "^13.0",
+        "symfony/var-dumper": "^8.0"
+    },
+    "bin": [
+        "bin/app"
+    ],
+    "scripts": {
+        "test": "phpunit",
+        "stan": "phpstan analyse",
+        "check": [
+        "@test",
+        "@stan"
+        ]
+    }
+}

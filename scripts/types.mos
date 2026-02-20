@@ -1,0 +1,4 @@
+[loadm "scripts/conslib.mos" "cons"]
+[loadm "scripts/taggedPair.mos" "tag"]
+
+[println [[tag "is"] :hello {:htranpit "Guv"}]]

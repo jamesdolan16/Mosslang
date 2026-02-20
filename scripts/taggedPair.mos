@@ -1,0 +1,17 @@
+[ -> 
+    [loadm "scripts/conslib.mos" cons]
+
+    is := [tag pair ->
+        [[cons "at"] 0 pair] = tag
+    ]
+
+    untag := [tag pair -> 
+        if [is tag pair] then [[cons "at"] 1 pair] else {:invalidTagError "Invalid Tag"}
+    ]
+
+    [ f -> 
+        if f = "is" then is
+        else if f = "untag" then untag
+        else { :noDeclError "Requested binding " + f + " not found in taggedPair" }
+    ]
+]

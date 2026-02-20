@@ -1,0 +1,91 @@
+{
+    "type": "Program",
+    "statements": [
+        {
+            "type": "ExpressionStatement",
+            "expression": {
+                "type": "Call",
+                "callee": {
+                    "type": "Identifier",
+                    "value": "load",
+                    "position": 1,
+                    "line": 1
+                },
+                "args": [
+                    {
+                        "type": "ScalarLiteral",
+                        "value": "scripts\/conslib.mos",
+                        "position": 6,
+                        "line": 1
+                    }
+                ],
+                "position": 1,
+                "line": 1
+            },
+            "position": 0,
+            "line": 1
+        },
+        {
+            "type": "ExpressionStatement",
+            "expression": {
+                "type": "Call",
+                "callee": {
+                    "type": "Identifier",
+                    "value": "println",
+                    "position": 1,
+                    "line": 3
+                },
+                "args": [
+                    {
+                        "type": "Call",
+                        "callee": {
+                            "type": "Identifier",
+                            "value": "at",
+                            "position": 10,
+                            "line": 3
+                        },
+                        "args": [
+                            {
+                                "type": "ScalarLiteral",
+                                "value": 1,
+                                "position": 13,
+                                "line": 3
+                            },
+                            {
+                                "type": "Construction",
+                                "elements": [
+                                    {
+                                        "type": "ScalarLiteral",
+                                        "value": 1,
+                                        "position": 16,
+                                        "line": 3
+                                    },
+                                    {
+                                        "type": "ScalarLiteral",
+                                        "value": 2,
+                                        "position": 18,
+                                        "line": 3
+                                    },
+                                    {
+                                        "type": "ScalarLiteral",
+                                        "value": 3,
+                                        "position": 20,
+                                        "line": 3
+                                    }
+                                ],
+                                "position": 16,
+                                "line": 3
+                            }
+                        ],
+                        "position": 10,
+                        "line": 3
+                    }
+                ],
+                "position": 1,
+                "line": 3
+            },
+            "position": 0,
+            "line": 3
+        }
+    ]
+}
