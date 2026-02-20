@@ -267,14 +267,16 @@ final class Evaluator
     private function evaluateCall(Call $call): ?Box
     {
         $functionName = $this->evaluateExpression($call->callee);
+        $lambdaB = $this->evaluateExpression($call->callee);
         /** @var Lambda|NativeLambda */
-        $lambda = $this->evaluateExpression($call->callee)->value;
+        $lambda = $lambdaB->value;
 
-        if (!$lambda) return $this->error("Call to undefined function '{$functionName}'", $call);
+        //if (!$lambda) return $this->error("Call to undefined function '{$functionName}'", $call);
 
         return match(true) {
             $lambda instanceof Lambda => $this->callLambda($call, $lambda, $call->args),
-            $lambda instanceof NativeLambda => $this->callNativeLambda($call, $lambda, $call->args)
+            $lambda instanceof NativeLambda => $this->callNativeLambda($call, $lambda, $call->args),
+            default => $this->error("Failed to call lambda, expected identifier, found {$lambdaB->toString(true)}", $call)
         };
     }
 

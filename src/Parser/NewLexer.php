@@ -163,7 +163,7 @@ class NewLexer
             $char = $this->advance();
 
             if ($char === $terminator) {
-                return new Token('string_literal', $value, $line, $col);
+                return new Token('string_literal', stripcslashes($value), $line, $col);
             }
 
             $value .= $char;

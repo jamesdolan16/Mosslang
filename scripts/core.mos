@@ -17,9 +17,14 @@
                 false
     ]
 
+    printArgs := [args ->
+        args ~> :null [a e -> [print e]]
+    ]
+
     [ f -> 
         if f = "and" then and
         else if f = "or" then or
+        else if f = "printArgs" then printArgs
         else { :noDeclError "Requested binding " + f + " not found in core" }
     ]
 ]

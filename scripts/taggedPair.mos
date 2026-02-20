@@ -5,13 +5,18 @@
         [[cons "at"] 0 pair] = tag
     ]
 
-    untag := [tag pair -> 
+    wrap := [tag value -> 
+        {tag value}
+    ]
+
+    unwrap := [tag pair -> 
         if [is tag pair] then [[cons "at"] 1 pair] else {:invalidTagError "Invalid Tag"}
     ]
 
     [ f -> 
         if f = "is" then is
-        else if f = "untag" then untag
+        else if f = "wrap" then wrap
+        else if f = "unwrap" then unwrap
         else { :noDeclError "Requested binding " + f + " not found in taggedPair" }
     ]
 ]

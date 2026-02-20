@@ -40,15 +40,15 @@ class Box {
         return $this->type === $box->type;
     }
 
-    public function toString(): string
+    public function toString(bool $escapeStrings = false): string
     {
-        return $this->stringify($this);
+        return $this->stringify($this, $escapeStrings);
     }
 
-    public function stringify(Box $box): string
+    public function stringify(Box $box, bool $escapeStrings): string
     {
         return match($box->type) {
-            'string' => $box->value,
+            'string' => $escapeStrings ? "\"{$box->value}\"" : $box->value,
             'integer', 'float' => (string)$box->value,
             'boolean' => $box->value ? 'true' : 'false',
             'construction' => $box->stringifyConstruction($box->value),
@@ -60,7 +60,7 @@ class Box {
     {
         $this->depth += 1;
         $str = "{" . implode(" ", array_map(
-            fn (Box $b) => /*str_repeat(' ', $this->depth * 2) .*/ $this->stringify($b), 
+            fn (Box $b) => /*str_repeat(' ', $this->depth * 2) .*/ $this->stringify($b, true), 
             $con
         )) . "}";
         $this->depth -= 1;

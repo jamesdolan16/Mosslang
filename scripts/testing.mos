@@ -52,12 +52,10 @@
 //     ]
 // ];
 
-
-
-// addInts := [TypedLambda {:integer :integer} :integer [args -> 
-//     a := [at 0 args]
-//     b := [at 1 args]
-//     a + b
-// ]]
+addInts := [TypedLambda {:integer :integer} :integer [args -> 
+    a := [at 0 args]
+    b := [at 1 args]
+    a + b
+]]
 
 // [println [addInts {1 "dog"}]]

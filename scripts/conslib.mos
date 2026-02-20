@@ -9,9 +9,12 @@
     *  @return any
     */
     at := [index collection -> 
-        collection ~> :null [a e i -> 
-            if i = index then { :reduced e } else a
-        ]
+        if !(?collection = :construction) then 
+            { :typeError { "Expected value of type construction, found " collection }}
+        else 
+            collection ~> :null [a e i -> 
+                if i = index then { :reduced e } else a
+            ]
     ]
 
     get := [key collection ->

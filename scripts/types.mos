@@ -1,17 +1,51 @@
-// [loadm "scripts/core.mos" "core"]
-// [loadm "scripts/conslib.mos" "cons"]
-// [loadm "scripts/taggedPair.mos" "tag"]
+[ -> 
+    [loadm "scripts/core.mos" "core"]
+    [loadm "scripts/conslib.mos" "cons"]
+    [loadm "scripts/taggedPair.mos" "tag"]
 
-// TypedLambda := [pTypes rType body ->
-//     [args ->
-//         paramsValid := args ~> true [a e i -> 
-//             expected := [at i pTypes]
-//             if ?e = expected then a else {:reduced {:typeError "Expected value of type " + expected + ", found " + ?e }}     
-//         ]
-//         if [and [-> (?paramsValid = :construction)] [-> ([at 0 paramsValid] = :typeError)]] then paramsValid
-//         else [expect :typeError
-//             [ -> [check [body args] rType]]
-//             [outcome -> outcome]
-//         ]
-//     ]
-// ]
+    check := [val type ->
+        if ?val = type then 
+            { :ok val } 
+        else 
+            { :typeError { "Expected value of type " type ", found " ?val }}
+    ]
+
+    string := [val -> [check val :string]]
+    integer := [val -> [check val :integer]]
+    float := [val -> [check val :float]]
+    construction := [val -> [check val :construction]]
+    symbol := [val -> [check val :symbol]]
+    lambda := [val -> [check val :lambda]]
+    native_lambda := [val -> [check val :native_lambda]]
+
+    /**
+     *  Returns a new type-checked lambda, where the type checking for the params is from pTypes
+     *  and the type checking for the return value is from rTypes.
+     *  
+     *  @param construction<symbol> pTypes
+     *  @param symbol rType
+     *  @return TypedLambda<ptypes, rtype> 
+     */
+    TypedLambda := [pTypes rType body ->
+        [args ->
+            ifParamsValid := [ ->
+                eval := [body args]
+                if ?eval = rType then eval
+                else { :typeError { "Expected return value of type " rType ", found " ?eval}}
+            ]
+            areParamsValid := args ~> true [a e i -> 
+                expected := [[cons "at"] i pTypes]
+                if ?e = expected then a
+                else { :reduced { :typeError { "Expected arg " i " to have type " expected ", found " ?e }}}     
+            ]
+            if [[tag "is"] :typeError areParamsValid] then areParamsValid
+            else [ifParamsValid]
+        ]
+    ]
+]
+
+// addInts := [TypedLambda {:integer :integer} :integer [args -> 
+//     a := [[cons "at"] 0 args]
+//     b := [[cons "at"] 1 args]
+//     "a + b"
+// ]]

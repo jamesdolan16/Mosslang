@@ -1,0 +1,14 @@
+[ -> 
+    [loadm "scripts/conslib.mos" cons]
+
+    expect := [err action when ->
+        outcome := [action]
+        if [[cons "at"] 0 outcome] = err then [when outcome]
+        else [[cons "at"] 1 outcome]
+    ]
+
+    [f -> 
+        if f = "expect" then expect
+        else { :noDeclError { "Requested binding " f " not found in error" }}
+    ]
+]
