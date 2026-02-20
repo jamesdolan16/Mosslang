@@ -48,7 +48,7 @@ class Box {
     public function stringify(Box $box): string
     {
         return match($box->type) {
-            'string' => "\"{$box->value}\"",
+            'string' => $box->value,
             'integer', 'float' => (string)$box->value,
             'boolean' => $box->value ? 'true' : 'false',
             'construction' => $box->stringifyConstruction($box->value),

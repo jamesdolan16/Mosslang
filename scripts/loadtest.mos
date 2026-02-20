@@ -1,3 +1,6 @@
 [loadm "scripts/conslib.mos" "cons"]
-
-[println [[cons "at"] 2 {0 1 2}]]
+lang := {
+  {:name "Moss"}
+  {:desc "Maximum composability, first-class functions, reduce operations and constructions(lists)"}
+}
+[println [[cons "get"] :name lang] + " is " + [[cons "get"] :desc lang]]

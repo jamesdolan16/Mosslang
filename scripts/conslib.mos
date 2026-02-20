@@ -14,6 +14,14 @@
         ]
     ]
 
+    get := [key collection ->
+        collection ~> :null [a e -> 
+            thisKey := [at 0 e]
+            thisVal := [at 1 e]
+            if thisKey = key then { :reduced thisVal } else a
+        ]
+    ]
+    
     /**
     * Reverses the order of collection
     *
@@ -50,6 +58,7 @@
 
     [f -> 
         if f = "at" then at
+        else if f = "get" then get
         else if f = "reverse" then reverse
         else if f = "hat" then hat
         else if f = "pop" then pop
