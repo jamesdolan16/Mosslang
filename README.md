@@ -1,434 +1,187 @@
-# SetFix
-A macro-extensible algebra for querying and constructing finite sets
+# Moss
+## Introduction
+Moss is a toy-language designed to prioritise composability, dynamism and simplicity. It touts:
+- First-class functions via lambdas
+- Heterogenerous lists as the fundamental data structure
+- Runtime inspection as a core language concept
+- Basic numerical operations
+- A simple module system
+- Basic VS Code syntax highlighting
 
+The prototype implementation is written in PHP which is far from ideal performance-wise, but provided a frictionless developer experience.
+To play with the interpreter run `docker compose exec php bin/app`
 ## Syntax
-### Sets
+### Values
+#### **primitives**
 ```
-*     : Select all elements in the universe, this set is called Universe
-(...) : Create a set from the inner query, this set is called a grouping 
+123
+-123
+123.456
+-123.456
+true
+:thisIsASymbol
+"This is a string"
 ```
-### Set Operations
+Creates a primitive literal value.
+#### **constructions**
 ```
-! : Exclusion (NOT)
-| : Union (OR)
-& : Intersection (AND)
-: : Filter by metadata predicate
+construction := { elements: <expr>* }
 ```
-### Filter Operations
+Creates a construction value where the elements are the evaluated values of the enclosed expressions.
+#### **lambda**
 ```
-<,<=,=,>=,> : Standard comparison operations
+lambda := [ <params> -> <body> ]
+<params> := <id>*
+<body> := <stmt>*
 ```
-### Additional Operations
+Creates a lambda value that takes the specified params and body, capturing anything used from the parent scope. The params must be a series of identifiers and thus are not computable dynamically, for situations where you would want a lambda with dynamic parameters use a construction as a parameter and destructure in the body.
+### Operations
+#### **Binding**
 ```
-;   : Expression Termination
-:=  : Assignment
-::  : Signature
+binding := <id> := <expr>
 ```
-## Examples
-### Setup
-```php
-$set = [
-    ['code' => 'D', 'name' => 'Dog', 'age' => 3],
-    ['code' => 'C', 'name' => 'Cat', 'age' => 5],
-    ['code' => 'F', 'name' => 'Frog', 'age' => 1]
-];
+Binds a value to an identifier. Bindings are immutable meaning that within a scope you may only bind to a specific **id** once. Bindings can shadow meaning that you can bind to an **id** used in the parent scope.
+#### **Arithmetic**
+```
+arithmetic := <expr> + - / * <expr>
+```
+Standard infix mathematic operations: add, sub, div and mul
+#### **Boolean Negation**
+```
+negate := !<expr>
+```
+#### **Inspect**
+```
+inspect := ?<expr>
+```
+Inspect value, this gives the type of evaluated right-hand expression. e.g. `:integer` or `:construction`
+#### **Concatenation**
+```
+concatenation := <expr>|<expr>
+```
+Creates a new construction from the results of the evaluated left-hand expression and right-hand expression. If either of the expressions evaluate to a construction then they are spread into the new construction, e.g.:
+```
+1|2 = {1 2}
+1|{2 3} = {1 2 3}
+{1 2}|3 = {1 2 3}
+{1 2}|{3 4} = {1 2 3 4}
+{1 {2 3}}|{4 5} = {1 {2 3} 4 5}
+```
+### Control Flow
+#### **conditional** 
+```
+conditional := if cond: <expr> then then: <expr> (else fail: <expr>)?
+```
+Executes **cond** and using the resultant value branches execution to **then** if it is truthy or **fail** if falsey.
+#### **call**
+```
+call := [ callee: <expr> args: <expr>* ]
+```
+Calls the binding returned by **callee** as a lambda with the evaluated args
+#### **reducer/pipeline**
+```
+reducer := input: <expr> <stage> <stage>*
+stage   := ~> initial: <expr> body: <id>|<lambda> 
+```
+Reduce **input** by the provided stages. A stage is comprised of its initial value and body, the body can be an identifier resolving to a lambda or a lambda directly.
+The body of a **stage** receives up to three arguments implicitly: 
+- **accumulator** the total accumulation in the reducer stage
+- **element** the current element from **input**
+- **index** the index of the current element
 
-$qr = SetFix::fromArray(
-    set: $set,
-    identifierCallback: static fn(array $item) => $item['code']
-);
+If a cycle of the stage evaluates to a Tagged Pair with the tag `:reduced` then the stage will cease early.
+### Tagged Pairs
+A tagged pair is a simple 2-element construction containing a symbol (the tag) and a value. Tagged pairs are useful to pass around data with meaning. Reducers used Tagged Pairs to break early, signalling with `{:reduced <value>}` that the reduce operation is finished. They can also be used to return errors from functions. Being that they only contain two values, they are very cheap to create and destructure, they can also be nested and then unwrapped accordingly.
+### Native Lambdas
+For operations that need to break the fourth wall e.g. IO, timing, etc. there exists Native Lambdas, these are similar to normal lambdas in every way except their body is defined in the host language (PHP presently), and not in Moss. This allows us to cleanly surface all capabilities of the host environement in a way that stays true to the worldview of the language, high composibility and minimal magic/keywords. Below are the currently supported Native Lambdas:
+#### **print**
+```
+[print arg: any]
+```
+Prints the string representation of the evaluated argument.
+#### **println**
+```
+[println arg: any]
+```
+Prints the string representation of the evaluated argument, followed by a new line.
+#### **load**
+```
+[load filename: string]
+```
+Executes the file specified in the current environment.
+#### **loadm**
+```
+[loadm filename: string alias: string]
+```
+Loads the specified file as a module. See section Modules for more information.
+#### **explode**
+```
+[explode string: string]
+```
+Converts a string to a construction containing each character from the string as an element.
+#### **raise**
+```
+[raise error: symbol message: string]
+```
+Raises an exception in the evaluator with the specified error and message.
+### Modules
+```
+[ ->
+    /**
+    *  Fetches element at index in collection
+    *
+    *  If index exceeds the length of collection then :null is returned
+    *
+    *  @param integer index
+    *  @param construction collection
+    *  @return any
+    */
+    at := [index collection -> 
+        collection ~> :null [a e i -> 
+            if i = index then { :reduced e } else a
+        ]
+    ]
 
-$selection = $qr->query(...);
-```
-### Queries
-## Selection
-```
-*D|C            => ['Dog', 'Cat']
-*:age<5         => ['Dog', 'Frog']
-*:age>1&:age<5  => ['Dog']
-(*C|F):age>1    => ['Cat']
-*D,*D|C,*D|C|F  => [['Dog'], ['Dog', 'Cat'], ['Dog', 'Cat', 'Frog']]
-```
-## Grammar
-```
-querySet            := query (';' query)*
-query               := set selection?
-set                 := universe|grouping
-grouping            := '(' query ')'
-selection           := union
-union               := intersection ('|' intersection)*
-intersection        := unary ('&' unary)*
-unary               := '!' unary | filter
-filter              := metadataPredicate | term
-metadataPredicate   := ':' metaId comparison term
-term                := itemId | scalar
-comparison          := < | <= | = | >= | >
-universe            := *
-scalar              := string | float | int
-string              := '"' (a-zA-Z_-.)* '"' 
-float               := int '.' (0-9)+
-int                 := '-'? (0-9)*
+    /**
+    * Reverses the order of collection
+    *
+    * @param construction collection
+    * @return construction
+    */
+    reverse := [collection ->
+        collection ~> {} [a e -> e|a]
+    ]
 
-statement             := definition* construction?
-definition            := assignment | macro ';'
-assignment            := groupings ':=' set ';'
-macro                 := macroId params '::' macroBody
-macroBody             := assignment* query
-construction          := '{' construction* '}' | sets
-sets                  := set ('|' set)*
-set                   := universe|grouping
-```
-## Debug
-Debug output can be activated by passing true to the debug flag when instantiating an **Evaluator**, this causes the **Evaluator** to print the AST for the parsed query in Lisp format.
-```clojure
-(QuerySet
-  (Query
-    (Universe)
-    (Union
-      (Intersection
-        (Filter
-          (MetadataPredicate
-            (MetadataIdentifier "value")
-            (Comparison =)
-            (Term
-              (Scalar "Boo"))))
-      (Intersection
-        (Filter
-          (MetadataPredicate
-            (MetadataIdentifier "value")
-            (Comparison =)
-            (Term
-              (Scalar "Abra")))))))))
-```
-## Planned Features
-### Named Sets
-Named Sets are a proposed feature to allow for more composable query definitions. You can assign any valid set a name
-using the new assignment operator `:=`. Your named set can then be used many times within further queries.
+    /**
+    * Destructure collection into head and tail
+    *
+    * @param construction collection
+    * @return construction{any, construction}
+    */
+    hat := [collection ->
+        head := [at 0 collection]
+        tail := collection ~> {} [a e i -> if i = 0 then a else a|e]
+        {head tail}
+    ]
 
-Named Sets can make use of other named sets to achieve optimal composability, see below:
-```
-children := *:age<16;
-boys := children:gender='male';
-boys;
-```
-Note that Named Sets act as AST node substitutions and thus are evaluated lazily. See how they fit into an AST below:
-```clojure
-(Statement
-  (NamedSet
-    (SetIdentifier "children")
-    (Query
-      (Universe)
-      (Union
-        (Intersection
-          (Filter
-            (MetadataPredicate
-              (MetadataIdentifier "age")
-              (Comparison <)
-              (Term
-                (Scalar 16))))))))
-  (NamedSet
-    (SetIdentifier "boys")
-    (Query
-      (SetIdentifier "children")
-      (Union
-        (Intersection
-          (Filter
-            (MetadataPredicate
-              (MetadataIdentifier "gender")
-              (Comparison =)
-              (Term
-                (Scalar "male"))))))))
-  (QuerySet
-    (Query
-      (SetIdentifier "boys"))))
-```
-Resolves to
-```clojure
-(Statement
-  (NamedSet
-    (SetIdentifier "boys")
-    (Query
-      (Grouping
-        (Query
-          (Universe)
-          (Union
-            (Intersection
-              (Filter
-                (MetadataPredicate
-                  (MetadataIdentifier "age")
-                  (Comparison <)
-                  (Term
-                    (Scalar 16))))))))
-      (Union
-        (Intersection
-          (Filter
-            (MetadataPredicate
-              (MetadataIdentifier "gender")
-              (Comparison =)
-              (Term
-                (Scalar "male"))))))))
-  (QuerySet
-    (Query
-      (SetIdentifier "boys"))))
-```
-Resolves to
-```clojure
-(Statement
-  (QuerySet
-    (Query
-      (Grouping
-        (Query
-          (Grouping
-            (Query
-              (Universe)
-              (Union
-                (Intersection
-                  (Filter
-                    (MetadataPredicate
-                      (MetadataIdentifier "age")
-                      (Comparison <)
-                      (Term
-                        (Scalar 16))))))))
-          (Union
-            (Intersection
-              (Filter
-                (MetadataPredicate
-                  (MetadataIdentifier "gender")
-                  (Comparison =)
-                  (Term
-                    (Scalar "male")))))))))))
-```
-### Macros
-Macros are a proposed feature that will further improve composability in SetFix. Unlike Named Sets, Macros do not need
-to be valid Sets, they can be anything thereby facilitating arbitrary code reuse. Additionally Macros can take
-parameters, introducing interesting new ways to write SetFix code.
+    /**
+    * Pop the last element off the construction
+    *
+    * @param construction collection
+    * @return construction{construction, any}
+    */ 
+    pop := [collection -> 
+        reversed := [reverse collection]
+        ht := [hat reversed]
+        {[at 0 ht] [reverse [at 1 ht]]}
+    ]
 
-Macros can be defined using the new Signature operator `::`. The syntax for defining a Macro is as follows:
-```
-macroId (paramId ' ')* :: body;
-```
-Below are a few examples of Macro definitions:
-```
-old :: :age>60;
-between metaId a b :: :metaId>a&:metaId<b;
-inSchool :: [between age 4 16];
-*[inSchool]
-```
-Notice the square-bracket syntax in the above example, this is SetFix' Macro calling syntax, it is formalised below:
-```
-[macroId (param ' ')*]
-```
-### Extended Set Operations
-#### Shift
-Shift allows you to drop the first, or the last n elements from a set as follows:
-```
-(*A|B|C)>>1 # Evaluates to [B, C]
-(*A|B|C)<<1 # Evaluates to [A, B]
-```
-#### Stride
-Stride allows you to select only every nth element from a set, see below:
-```
-(*A|B|C)~2  # Evaluates to [A, C]
-(*A|B)~2    # Evaluates to [A]
-(*A|B|C)~1  # Evaluates to [A, B, C]
-(*A|B|C)~0  # Evaluates to []
-```
-### Constructions
-Constructions are a proposed feature that will facilitate structured output from SetFix queries. New stuff:
-#### Primitive Construction
-The fundamental building block of constructions is Primitive Construction, this is achieved with the following syntax:
-```
-{Set? (' ' Set)*}
-```
-Example
-```
-{"This" "Is" "A" "Construction"}  # Evaluates to ["This", "Is", "A", "Construction"]
-{(*:age<10) (*:age>5)}
-```
-#### Zip Operator `/`
-The Zip operator takes the lefthand set and combines it with the righthand set on an positional level to produce pairs.
-Note that the lefthand set and the righthand set must have the same number of items otherwise the operation is invalid
-and an error will be thrown. The syntax is as follows:
-```
-Set/Set
-```
-Example
-```
-(*A|B|C)/(*D|E|F) # Evaluates to [[A,D], [B,E], [C,F]]
-```
-An huge benefit provided by the Zip Operator is made apparent when you marry it with Macros and Extended Set Operations, below is the implementation of the `kv` Macro (Key-Value):
-```
-kv items :: keys := (items~2)/((items>>1)~2)
-```
-This macro allows for the easy creation of nested constructions:
-```
-[kv
-  "heightGrouped" [kv "tall" tall "short" short]
-  "all" juniors]
-```
-Resolves to
-```
-{"heightGrouped" "all"}/{{"tall" "short"}/{tall short} juniors}
-```
-Which evaluates to the following, that can easily be converted to proper host language dictionaries/hashmaps
-```
-[
-  ["heightGrouped, [["tall", tall], ["short", short]]],
-  ["all", juniors]
+    [f -> 
+        if f = "at" then at
+        else if f = "reverse" then reverse
+        else if f = "hat" then hat
+        else if f = "pop" then pop
+        else { :noDeclError "Requested binding " + f + " not found in conslib" }
+    ]
 ]
-```
-#### Unzip Operator `\`
-```
-[[a,b,c], [1,2,3]]\0            # [] 
-[[a,b,c], [1,2,3]]\1            # [[a,1]]
-[[a,b,c], [1,2,3]]\2            # [[a,1], [b,2]]
-[[a,b,c], [1,2,3], [i,j,k]]\3   # [[a,1,i], [b,2,j], [c,3,k]]
-```
-#### Product Operator `//`
-```php
-$users = [
-    'a' => ['id' => 0, 'name' => 'Billy Bob'],
-    'b' => ['id' => 1, 'name' => 'Joe Bloggs'],
-    'c' => ['id' => 2, 'name' => 'John Smith'] 
-];
-$orders = [
-    'a' => ['id' => 0, 'userId' => 0, 'desc' => '3 Hammers'],
-    'b' => ['id' => 1, 'userId' => 0, 'desc' => '12 Nails'],
-    'c' => ['id' => 2, 'userId' => 2, 'desc' => 'A Sandwich'] 
-];
-$sf = SetFix::fromArrays($users, $orders);
-echo $sf->query(...);
-```
-```setfix
-lj leftSet leftField rightSet rightField :: 
-  product                         := leftSet//rightSet;
-  productLeft productRight        := product\2;
-  matchedLeft                     := productLeft:leftField = productRight.rightField;
-  matchedRight                    := productRight:rightField = productLeft.leftField;
-  matches                         := matchedLeft/matchedRight;
-  unmatchedLeft                   := leftSet!matchedLeft;
-  padded                          := unmatchedLeft//();
-  matches|padded;
-
-lj leftSet leftField rightSet rightField :: 
-  product                         := (leftSet//rightSet)\2
-  matched                         := product:0.leftField = 1.rightField
-  matchedLeft                     := matched\1
-  unmatchedLeft                   := leftSet!matchedLeft
-  padded                          := unmatchedLeft//()
-  matches|padded
-```
-Stepped Breakdown
-`product := left//right`
-```
-[[a,a], [a,b], [a,c]. [b,a], [b,b], [b,c], [c,a], [c,b], [c,c]]    # Left value is identity from set $users, right value is identity from set $orders
-```
-`[productLeft, productRight] := product\2`
-```
-[a,a,a,b,b,b,c,c,c]                                                # Left identities into set productLeft
-[a,b,c,a,b,c,a,b,c]                                                # Right identities into set productRight
-```
-`matchedLeft := productLeft:leftField = productRight.rightField`
-```
-[a,a,c]
-```
-`matchedRight := productRight:rightField = productLeft.leftField`
-```
-[a,b,c]
-```
-`matches := matchedLeft/matchedRight`
-```
-[[a,a], [a,b], [c,c]]
-```
-`unmatchedLeft := leftSet!matchedLeft`
-```
-[b]
-```
-`padded := unmatchedLeft//()`
-```
-[[b,()]]
-```
-`matches|padded`
-```
-[[a,a], [a,b], [c,c], [b,()]]
-```
-
-## Reimplementation
-
-SetFix becomes Moss. Moss is a collection based langauge that values terseness, composabilty and ease of use
-Borrowing from SetFix:
-- Set operations
-- Operator driven syntax
-
-But adding:
-- First class functions
-- Constructions as core data structure
-- Recursion
-
-```
-map := [f xs -> xs ~> {} [acc item -> acc|{[f item]}]];
-flatMap := [f xs -> xs ~> {} [acc item -> acc|[f item]]];
-filter := [f xs -> xs ~> {} [acc item -> if [f item] then acc|{item}]];
-count := [f xs -> xs ~> 0 [acc item -> if [f item] then acc + 1]];
-
-program             := statement*
-statement           := (definition | expression) ';'
-definition          := id ':=' expression
-expression          := conditional
-conditional         := 'if' pipeline 'then' pipeline ('else' pipeline)? | pipeline
-pipeline            := concatenation ('~>' reducerBody)*
-concatenation       := comparison ('|' comparison)*
-comparison          := arithmetic (comparisonOperator arithmetic)?
-arithmetic          := term (addOperator term)*
-term                := unary (mulOperator mul)*
-unary               := unaryOperator unary | primary
-primary             := application | '(' expression ')' | construction | id | symbol | scalar
-application         := '[' call | lambda ']'
-reducerBody         := init (id|lambda)
-lambda              := params '->' lambdaBody
-params              := id*
-lambdaBody          := expression
-call                := expression (',' expression)*
-id                  := atom ('.' atom)*
-symbol              := ':' atom
-addOperator         := '+' | '-'
-mulOperator         := '*' | '/'
-comparisonOperator  :=  '<' | '<=' | '=' | !=' | '>' | '>='
-construction        := '{' constructionBody '}'
-constructionBody    := constructionElement? (',' constructionElement)*
-constructionElement := (construction | id | symbol | scalar)
-atom                := (a-zA-Z) (a-zA-Z0-9_-)*
-
-[kv [pair 'name' 'Jeremy']]
-people := {                       # Define construction called people
-  {   
-    {:name 'Jeremy},               # Store data as key-value constructions
-    {:height 2.1},
-    {:age 19}
-  }
-  {
-    {:name 'Alex},                 # Strings with no whitespace can just be prefixed (no closing quote)
-    {:height 1.95},
-    {:age 20}
-  }
-  {
-    {:name 'Matthew},
-    {:height 2.05},
-    {:age 18}
-  }
-  {
-    {:name 'Matthew},
-    {:height 1.80},
-    {:age 17}
-  }
-};
-
-map construction transformation :: construction ~> {} [@acc | [transformation @]]
-
-tallPeople := people:height > 2.0;        # Filter people by predicate
-jAndA := people:name = 'Jeremy|'Alex;     # Filter set-style using union within predicate
-intersection := tallPeople&jAndA;         # Get intersection of two constructions
-totalAge := tallPeople ~> 0 [@acc + @.height];
-names := [map people [@.name]]            # Get names of people
-
 ```
