@@ -79,25 +79,70 @@ final class Evaluator
         $this->evaluateProgram($program);
     }
 
-    public function loadModule(string $filename, string $alias): void
+    /**
+     * Extract all top-level definitions then prefix their indentifers
+     * and evaluate in the calling environment
+     */
+    public function loadModule(string $filename, string $alias): Box
     {
-        $program = $this->loadFile($filename);
+        $moduleProgram = $this->loadFile($filename);
+        $moduleExprStmt = $moduleProgram->statements[0];
+
+        if (!$moduleExprStmt instanceof ExpressionStatement)
+            return $this->createUserError(
+                'moduleDefinitionError',
+                'Modules must be defined on their own in a file as a zero parameter lambda, binding to an identifier is 
+                invalid'
+            );
+
+
+        $defLambda = $moduleExprStmt->expression;
+
+        if (!$defLambda instanceof LambdaNode)
+            return $this->createUserError(
+                'moduleDefinitionError',
+                'Modules must be defined on their own in a file as a zero parameter lambda, binding to an identifier is 
+                invalid'
+            );
         
-        /** @var ExpressionStatement */
-        $moduleExprStmt = $program->statements[0];
-        $moduleLoadIdentifier = new Identifier("{$alias}_load");
-        $moduleLoadDef = new DefinitionStatement();
-        $moduleLoadDef->name = $moduleLoadIdentifier;
-        $moduleLoadDef->value = $moduleExprStmt->expression;
-        $this->evaluateDefinitionStatement($moduleLoadDef);
+        $oldEnvs = $this->envs;
+        $this->envs = [new Env()];
+
+        $this->loadNativeLambdas();
 
         $loadCall = new Call();
-        $loadCall->callee = $moduleLoadIdentifier;
-        $moduleDef = new DefinitionStatement();
-        $moduleIdentifier = new Identifier($alias);
-        $moduleDef->name = $moduleIdentifier;
-        $moduleDef->value = $loadCall;
-        $this->evaluateDefinitionStatement($moduleDef);
+        $loadCall->callee = $defLambda;
+        
+        $moduleMappingBox = $this->evaluateCall($loadCall);
+        /** @var list<array{0: string, 1: Lambda}> */
+        $mappings = $moduleMappingBox->value;
+
+        $this->envs = $oldEnvs;
+
+        $importedFuncCount = 0;
+        foreach($defLambda->body as $stmt) {
+            if ($stmt instanceof DefinitionStatement) {
+                $mappingName = $stmt->name->value;
+                $funcMap = array_find(
+                    $mappings,
+                    static fn (Box $mapping) => $mapping->value[0]->value === $mappingName
+                )?->value[1];
+
+                if (!$funcMap) $this->error("Failed to map '$mappingName' in module import '$alias'", $defLambda);
+
+                $this->currentEnv()->set("{$alias}_$mappingName", $funcMap);
+                $importedFuncCount++;
+            }
+        }
+
+        return new Box($importedFuncCount);
+    }
+
+    private function createUserError(string $error, string $message): Box
+    {
+        $errorSymbol = new Symbol();
+        $errorSymbol->name = $error;
+        return new Box([$error, $message]);
     }
 
     public function loadNativeLambdas(): void
@@ -109,11 +154,9 @@ final class Evaluator
                 new NativeLambda(
                     ['filePath'],
                     function (Box $box) {
-                        if ($box->type !== 'string') {
-                            $typeErrorSymbol = new Symbol();
-                            $typeErrorSymbol->name = 'typeError';
-                            return new Box([$typeErrorSymbol, "Expected string, found {$box->type}"]);
-                        }
+                        if ($box->type !== 'string') 
+                            return $this->createUserError('typeError', "Expected string, found {$box->type}");
+                        
                         $this->evaluateFile($box->value);
                     }
                 )
@@ -125,16 +168,14 @@ final class Evaluator
                 new NativeLambda(
                     ['filePath', 'alias'],
                     function (Box $filePathB, Box $aliasB) {
-                        $typeErrorSymbol = new Symbol();
-                        $typeErrorSymbol->name = 'typeError';
                         if ($filePathB->type !== 'string') {
-                            return new Box([$typeErrorSymbol, "Expected string, found {$filePathB->type}"]);
+                            return $this->createUserError('typeError', "Expected string, found {$filePathB->type}");
                         }
                         if ($aliasB->type !== 'string') {
-                            return new Box([$typeErrorSymbol, "Expected string, found {$aliasB->type}"]);
+                            return $this->createUserError('typeError', "Expected string, found {$aliasB->type}");
                         }
 
-                        $this->loadModule($filePathB->value, $aliasB->value);
+                        return $this->loadModule($filePathB->value, $aliasB->value);
                     }
                 )
             )
@@ -169,11 +210,9 @@ final class Evaluator
                 new NativeLambda(
                     ['construction'],
                     function (Box $construction) {
-                        if ($construction->type !== 'construction') {
-                            $typeErrorSymbol = new Symbol();
-                            $typeErrorSymbol->name = 'typeError';
-                            return new Box([$typeErrorSymbol, "Expected construction, found {$construction->type}"]);
-                        }
+                        if ($construction->type !== 'construction') 
+                            return new Box('typeError', "Expected construction, found {$construction->type}");
+                        
                         return explode("", $construction->value);
                     }
                 )
@@ -192,17 +231,18 @@ final class Evaluator
         );
     }
 
-    public function evaluateProgram(Program $program): string
+    public function evaluateProgram(Program $program, bool $replMode = false): string
     {
         try {
             return implode("\n", 
-                array_map(function (Statement $statement) { 
+                array_map(function (Statement $statement) use ($replMode) { 
                     try {
-                        $this->evaluateStatement($statement);
+                        $result = $this->evaluateStatement($statement);
+                        if ($replMode) echo $result->toString() . PHP_EOL;
                     } catch (EvaluatorException $e) {
                         // Continue
                     }
-                }, $program->statements)
+                }, $program?->statements)
             );
         } catch (UserError $e) {
             fwrite(STDERR, $e->error->toString() . " " . $e->userMessage->toString());
@@ -218,13 +258,21 @@ final class Evaluator
         };
     }
 
-    private function evaluateDefinitionStatement(DefinitionStatement $statement): void
+    private function evaluateDefinitionStatement(DefinitionStatement $statement): ?Box
     {
         $identifier = $statement->name;
         if ($this->currentEnv()->get($identifier->value)) throw new \LogicException("Cannot redefine '{$identifier}'");
         
-        $this->currentEnv()->set($identifier->value, new Box(null));
-        $this->currentEnv()->swapContents($identifier->value, $this->evaluateExpression($statement->value));
+        try {
+            $this->currentEnv()->set($identifier->value, new Box(null));
+            $eval = $this->evaluateExpression($statement->value);
+            $this->currentEnv()->swapContents($identifier->value, $eval);
+
+            return $eval;
+        } catch (EvaluatorException $e) {
+            $this->currentEnv()->unset($identifier->value);
+            throw $e;
+        }
     }
     
     private function evaluateExpressionStatement(ExpressionStatement $statement): ?Box

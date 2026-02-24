@@ -1,3 +1,10 @@
+/**
+ *  (Cons)truction (Lib)rary
+ *
+ *  Provides useful functions for handling constructions
+ *
+ *  @author James Dolan
+*/
 [ ->
     /**
     *  Fetches element at index in collection
@@ -24,7 +31,7 @@
             if thisKey = key then { :reduced thisVal } else a
         ]
     ]
-    
+
     /**
     * Reverses the order of collection
     *
@@ -59,12 +66,11 @@
         {[at 0 ht] [reverse [at 1 ht]]}
     ]
 
-    [f -> 
-        if f = "at" then at
-        else if f = "get" then get
-        else if f = "reverse" then reverse
-        else if f = "hat" then hat
-        else if f = "pop" then pop
-        else { :noDeclError "Requested binding " + f + " not found in conslib" }
-    ]
+    {
+        {"at" at}
+        {"get" get}
+        {"reverse" reverse}
+        {"hat" hat}
+        {"pop" pop}
+    }
 ]

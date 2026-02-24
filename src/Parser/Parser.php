@@ -64,10 +64,10 @@ class Parser
     private function looksLikeDefinition(): bool
     {   
         $i = $this->index + 1;
-        if ($this->tokenAt($i)->kind === 'atom') {
+        if ($this->tokenAt($i)?->kind === 'atom') {
             $i++;
         }
-        return $this->tokenAt($i)->kind === 'assignment';
+        return $this->tokenAt($i)?->kind === 'assignment';
     }
 
     private function tryDefinitionStatement(): ?DefinitionStatement
@@ -78,8 +78,8 @@ class Parser
         if (!$this->match('assignment')) return null;
 
         $node = new DefinitionStatement();
-        $node->line = $this->peek()->line;
-        $node->position = $this->peek()->position;
+        $node->line = $this->peek()?->line;
+        $node->position = $this->peek()?->position;
         $node->name = $name;
 
         $this->advance();
@@ -93,8 +93,8 @@ class Parser
     private function expressionStatement(): ExpressionStatement
     {    
         $statement = new ExpressionStatement();
-        $statement->line = $this->peek()->line;
-        $statement->position = $this->peek()->position;
+        $statement->line = $this->peek()?->line;
+        $statement->position = $this->peek()?->position;
         $statement->expression = $this->expression();
         return $statement;
     }
@@ -104,8 +104,8 @@ class Parser
         if (!$this->match('atom')) return null;
     
         $node = new Identifier();
-        $node->line = $this->peek()->line;
-        $node->position = $this->peek()->position;
+        $node->line = $this->peek()?->line;
+        $node->position = $this->peek()?->position;
         $node->value = $this->consume('atom')->value;
 
         if ($capture && $currentCaptureTarget = array_last($this->captureTargetStack)) {
@@ -136,19 +136,19 @@ class Parser
 
     private function conditional(): Expression
     {    
-        if ($this->match('atom') && $this->peek()->value === 'if') {
+        if ($this->match('atom') && $this->peek()?->value === 'if') {
             $node = new Conditional();
-            $node->line = $this->peek()->line;
-            $node->position = $this->peek()->position;
+            $node->line = $this->peek()?->line;
+            $node->position = $this->peek()?->position;
 
             $this->consume('atom');
             $node->condition = $this->pipeline();
 
-            if ($this->peek()->value !== 'then') $this->error('if <expr> must be followed by then <expr>'); 
+            if ($this->peek()?->value !== 'then') $this->error('if <expr> must be followed by then <expr>'); 
             $this->consume('atom');
             $node->then = $this->expression();
 
-            if ($this->match('atom') && $this->peek()->value === 'else') {
+            if ($this->match('atom') && $this->peek()?->value === 'else') {
                 $this->consume('atom');
                 $node->else = $this->expression();
             }
@@ -164,8 +164,8 @@ class Parser
         $concatenation = $this->concatenation();
         if ($this->match('pipeline')) {
             $pipeline = new Pipeline();
-            $pipeline->line = $this->peek()->line;
-            $pipeline->position = $this->peek()->position;
+            $pipeline->line = $this->peek()?->line;
+            $pipeline->position = $this->peek()?->position;
             $pipeline->input = $concatenation;
 
             while($this->match('pipeline')) {
@@ -183,8 +183,8 @@ class Parser
         $left = $this->comparison();
         while ($this->match('concat')) {
             $node = new Concatenation();
-            $node->line = $this->peek()->line;
-            $node->position = $this->peek()->position;
+            $node->line = $this->peek()?->line;
+            $node->position = $this->peek()?->position;
             $this->consume('concat');
             $node->right = $this->comparison();
             $node->left = $left;
@@ -199,8 +199,8 @@ class Parser
         $init = $this->expression();
 
         $reducerStage = new ReducerStage();
-        $reducerStage->line = $this->peek()->line;
-        $reducerStage->position = $this->peek()->position;
+        $reducerStage->line = $this->peek()?->line;
+        $reducerStage->position = $this->peek()?->position;
         $reducerStage->init = $init;
         
         $reducer = $this->tryIdentifier();
@@ -218,8 +218,8 @@ class Parser
         $left = $this->arithmetic();
         if($this->match('comparison')) {
             $node = new Comparison();
-            $node->line = $this->peek()->line;
-            $node->position = $this->peek()->position;
+            $node->line = $this->peek()?->line;
+            $node->position = $this->peek()?->position;
             $node->operator = $this->consume('comparison')->value;
             $node->right = $this->arithmetic();
             $node->left = $left;
@@ -234,8 +234,8 @@ class Parser
         $left = $this->term();
         while($this->match('addOperator')) {
             $node = new Arithmetic();
-            $node->line = $this->peek()->line;
-            $node->position = $this->peek()->position;
+            $node->line = $this->peek()?->line;
+            $node->position = $this->peek()?->position;
             $node->operator = $this->consume('addOperator')->value;
             $node->right = $this->term();
             $node->left = $left;
@@ -249,8 +249,8 @@ class Parser
         $left = $this->unary();
         while($this->match('mulOperator')) {
             $node = new Term();
-            $node->line = $this->peek()->line;
-            $node->position = $this->peek()->position;
+            $node->line = $this->peek()?->line;
+            $node->position = $this->peek()?->position;
             $node->operator = $this->consume('mulOperator')->value;
             $node->right = $this->unary();
             $node->left = $left;
@@ -261,11 +261,11 @@ class Parser
 
     private function unary(): Expression
     {    
-        if ($this->match('unary') || ($this->match('addOperator') && $this->peek()->value === '-')) {
+        if ($this->match('unary') || ($this->match('addOperator') && $this->peek()?->value === '-')) {
             $unary = new Unary();
-            $unary->line = $this->peek()->line;
-            $unary->position = $this->peek()->position;
-            $unary->operator = $this->peek()->value;
+            $unary->line = $this->peek()?->line;
+            $unary->position = $this->peek()?->position;
+            $unary->operator = $this->peek()?->value;
             $this->advance();
             $unary->value = $this->unary();
             return $unary;
@@ -283,7 +283,13 @@ class Parser
         $expression ??= $this->trySymbol();
         $expression ??= $this->tryScalar();
         if (!$expression) {
-            $this->error("Failed to parse rule 'primary' at token({$this->peek()->kind})");
+            if ($this->peek() === null) {
+                throw new IncompleteParseException("Unexpected end of input");
+            }
+
+            throw new SyntaxParseException(
+                "Unexpected token '{$this->peek()->kind}'"
+            );
         }
 
         return $expression;
@@ -310,20 +316,11 @@ class Parser
         return null;
     }
 
-    private function looksLikeLambda(): bool
-    {    
-        $i = $this->index;
-        while ($this->tokenAt($i)->kind !== 'atom') {
-            $i++;
-        }
-        return $this->tokenAt($i)->kind === 'arrow';
-    }
-
     private function call(): Expression
     {    
         $call = new Call();
-        $call->line = $this->peek()->line;
-        $call->position = $this->peek()->position;
+        $call->line = $this->peek()?->line;
+        $call->position = $this->peek()?->position;
         $call->callee = $this->expression();
 
         while (!$this->match('r_brack')) {
@@ -336,8 +333,8 @@ class Parser
     private function lambda(): Expression
     {    
         $node = new Lambda();
-        $node->line = $this->peek()->line;
-        $node->position = $this->peek()->position;
+        $node->line = $this->peek()?->line;
+        $node->position = $this->peek()?->position;
         $node->params = $this->lambdaParams();
 
         $this->consume('arrow');
@@ -357,7 +354,7 @@ class Parser
         try {
             $lambda = $this->lambda();
             return $lambda;
-        } catch (\LogicException $e) {
+        } catch (SyntaxParseException $e) {
             return null;
         }
     }
@@ -393,9 +390,13 @@ class Parser
         
         $this->consume('l_brace');
         $construction = new Construction();
-        $construction->line = $this->peek()->line;
-        $construction->position = $this->peek()->position;
-        while($this->index < count($this->tokens) && !$this->match('r_brace')) {
+        $construction->line = $this->peek()?->line;
+        $construction->position = $this->peek()?->position;
+        while (!$this->match('r_brace')) {
+            if ($this->peek() === null) {
+                throw new IncompleteParseException("Unclosed '{'");
+            }
+
             $element = $this->tryConstructionElement();
             if ($element) $construction->elements[] = $element;
         }
@@ -414,8 +415,8 @@ class Parser
         if (!$this->match('symbol')) return null;
 
         $node = new Symbol();
-        $node->line = $this->peek()->line;
-        $node->position = $this->peek()->position;
+        $node->line = $this->peek()?->line;
+        $node->position = $this->peek()?->position;
         $node->name = $this->consume('symbol')->value;
 
         return $node;
@@ -423,15 +424,15 @@ class Parser
 
     private function tryScalar(): ?Expression
     {    
-        if (!in_array($this->peek()->kind, ['int_literal', 'float_literal', 'string_literal', 'bool_literal'])) return null;
+        if (!in_array($this->peek()?->kind, ['int_literal', 'float_literal', 'string_literal', 'bool_literal'])) return null;
         $scalar = new ScalarLiteral();
-        $scalar->line = $this->peek()->line;
-        $scalar->position = $this->peek()->position;
-        $scalar->value = match($this->peek()->kind) {
-            'int_literal' => (int)$this->peek()->value,
-            'float_literal' => (float)$this->peek()->value,
-            'string_literal' => (string)$this->peek()->value,
-            'bool_literal' => $this->peek()->value === 'true',
+        $scalar->line = $this->peek()?->line;
+        $scalar->position = $this->peek()?->position;
+        $scalar->value = match($this->peek()?->kind) {
+            'int_literal' => (int)$this->peek()?->value,
+            'float_literal' => (float)$this->peek()?->value,
+            'string_literal' => (string)$this->peek()?->value,
+            'bool_literal' => $this->peek()?->value === 'true',
         };
         $this->advance();
 
@@ -453,15 +454,23 @@ class Parser
     private function consume(string $kind): Token
     {    
         $currentToken = $this->peek();
+
         if ($this->match($kind)) {
-            $currentToken = $this->peek();
             $this->advance();
             return $currentToken;
         }
-        else {
-            $remaining = $this->stringifyTokenStream(array_slice($this->tokens, $this->index));
-            $this->error("Expected '$kind', found '{$currentToken->kind}', remaining '{$remaining}'");
+
+        if ($currentToken === null) {
+            throw new IncompleteParseException("Unexpected end of input, expected '$kind'");
         }
+
+        $remaining = $this->stringifyTokenStream(
+            array_slice($this->tokens, $this->index)
+        );
+
+        throw new SyntaxParseException(
+            "Expected '$kind', found '{$currentToken->kind}', remaining '{$remaining}'"
+        );
     }
 
     private function peek(): ?Token
@@ -481,21 +490,21 @@ class Parser
 
     public function error(string $message): void
     {
-        $line = $this->peek()->line;
-        $position = $this->peek()->position;
-        throw new \LogicException("Parse Error on line $line at position $position: $message");
+        $line = $this->peek()?->line;
+        $position = $this->peek()?->position;
+        throw new SyntaxParseException("Parse Error on line $line at position $position: $message");
     }
 
     public function normaliseAst(mixed $node): mixed
     {
         if (is_array($node)) {
-            return array_map('normaliseAst', $node);
+            return array_map([$this, 'normaliseAst'], $node);
         }
 
         if (is_object($node)) {
             return [
                 'type' => (new ReflectionClass($node))->getShortName(),
-                ...array_map('normaliseAst', get_object_vars($node))
+                ...array_map([$this, 'normaliseAst'], get_object_vars($node))
             ];
         }
 

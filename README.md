@@ -185,3 +185,41 @@ Raises an exception in the evaluator with the specified error and message.
     ]
 ]
 ```
+## Grammar
+```EBNF
+program             = statement*;
+statement           = (definition | expression) ';';
+definition          = id ':=' expression;
+expression          = conditional;
+conditional         = 'if' pipeline 'then' pipeline ('else' pipeline)? | pipeline;
+pipeline            = concatenation ('~>' reducerBody)*;
+concatenation       = comparison ('|' comparison)*;
+comparison          = arithmetic (comparisonOperator arithmetic)?;
+arithmetic          = term (addOperator term)*;
+term                = unary (mulOperator mul)*;
+unary               = unaryOperator unary | primary;
+primary             = application | '(' expression ')' | construction | id | symbol | scalarLiteral;
+application         = '[' (call | lambda) ']';
+reducerBody         = init callable;
+init                = expression;
+lambda              = params '->' lambdaBody;
+params              = id*;
+lambdaBody          = expression;
+call                = callable expression*;
+callable            = application | id
+id                  = atom ('.' atom)*;
+symbol              = ':' atom;
+addOperator         = '+' | '-';
+mulOperator         = '*' | '/';
+comparisonOperator  =  '<' | '<=' | '=' | '!=' | '>' | '>=';
+construction        = '{' constructionBody '}';
+constructionBody    = constructionElement*;
+constructionElement = construction | id | symbol | scalarLiteral;
+atom                = (a-zA-Z) (a-zA-Z0-9_-)*;
+scalarLiteral       = stringLiteral | integerLiteral | floatLiteral | booleanLiteral;
+stringLiteral       = '"' any_char* '"'
+                    | '\'' any_char* '\'';
+integerLiteral      = [0-9]+;
+floatLiteral        = [0-9]+ '.' [0-9]+;
+booleanLiteral      = 'true' | 'false';
+```

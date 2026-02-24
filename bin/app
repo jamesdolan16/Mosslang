@@ -3,8 +3,10 @@
 require __DIR__ . '/../vendor/autoload.php';
 
 use Jamesdolan16\Mosslang\Evaluator\Evaluator;
+use Jamesdolan16\Mosslang\Parser\IncompleteParseException;
 use Jamesdolan16\Mosslang\Parser\Parser;
 use Jamesdolan16\Mosslang\Parser\NewLexer;
+use Jamesdolan16\Mosslang\Parser\SyntaxParseException;
 
 if ($argc < 2) {
     fwrite(STDERR, "Usage: php app <flags> <filename>\n");
@@ -47,13 +49,24 @@ if (!$repl) {
 
     $evaluator->evaluateProgram($program);
 } else {
+    $buffer = '';
     while (true) {
-        $line = readline("moss>");
+        $line = readline($buffer === '' ? "moss> " : "....> ");
         if ($line === false) break;
-        readline_add_history($line);
-        
-        $tokens = $lexer->tokenize($line);
-        $program = $parser->parse($tokens);
-        $evaluator->evaluateProgram($program);
+
+        $buffer .= $line . "\n";
+
+        try {
+            $tokens = $lexer->tokenize($buffer);
+            $program = $parser->parse($tokens);
+
+            $evaluator->evaluateProgram($program);
+            $buffer = '';
+        } catch (IncompleteParseException $e) {
+            // keep reading
+        } catch (SyntaxParseException $e) {
+            echo $e->getMessage() . "\n";
+            $buffer = '';
+        }
     }
 }

@@ -15,6 +15,11 @@ class Env {
         $this->vars[$identifier] = $value;
     }
 
+    public function unset(string $identifier): void
+    {
+        unset($this->vars[$identifier]);
+    }
+
     public function swapContents(string $identifier, Box $box): void
     {
         $this->vars[$identifier]->set($box->value);

@@ -1,22 +1,21 @@
 [ -> 
-    [loadm "scripts/conslib.mos" cons]
+    [loadm "scripts/conslib.mos" "cons"]
 
     is := [tag pair ->
-        [[cons "at"] 0 pair] = tag
+        [cons_at 0 pair] = tag
     ]
 
-    wrap := [tag value -> 
+    tag := [tag value -> 
         {tag value}
     ]
 
-    unwrap := [tag pair -> 
-        if [is tag pair] then [[cons "at"] 1 pair] else {:invalidTagError "Invalid Tag"}
+    untag := [tag pair -> 
+        if [is tag pair] then [cons_at 1 pair] else {:invalidTagError "Invalid Tag"}
     ]
 
-    [ f -> 
-        if f = "is" then is
-        else if f = "wrap" then wrap
-        else if f = "unwrap" then unwrap
-        else { :noDeclError "Requested binding " + f + " not found in taggedPair" }
-    ]
+    {
+        {"is" is}
+        {"tag" tag}
+        {"untag" untag}
+    }
 ]

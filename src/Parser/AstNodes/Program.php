@@ -5,7 +5,7 @@ namespace Jamesdolan16\Mosslang\Parser\AstNodes;
 final class Program
 {
     /** @var array<Statement> */
-    public array $statements;
+    public array $statements = [];
     public ?int $position;
     public ?int $line;
 }

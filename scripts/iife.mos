@@ -1,0 +1,10 @@
+[println
+    if false then [[ ->
+        message := "Hello"
+        message
+    ]]
+    else [[ ->
+        evilMessage := "world"
+        evilMessage
+    ]]
+]
