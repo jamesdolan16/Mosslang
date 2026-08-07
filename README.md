@@ -1,3 +1,6 @@
+> [!NOTE]
+> This is an abandoned project and is superseded by the Rust implementation [here](https://github.com/jamesdolan16/RustMoss)
+
 # Moss
 ## Introduction
 Moss is a toy-language designed to prioritise composability, dynamism and simplicity. It touts:
